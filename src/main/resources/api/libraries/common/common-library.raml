@@ -1,0 +1,7 @@
+#%RAML 1.0 Library
+usage:
+traits:
+  transactionId_header: !include /libraries/common/traits/commons.raml
+  common_qparams: !include /libraries/common/traits/common_qparams.raml
+  route_qparams: !include /libraries/route/route_qparams_trait.raml
+  requestTimeZone: !include /libraries/schedules/schedules_qparams_reqTZ.raml

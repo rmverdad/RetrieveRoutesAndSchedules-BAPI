@@ -1,0 +1,24 @@
+http:
+  listener:
+    host: "0.0.0.0"
+    port: "9085"
+  requester:
+    travelontip:
+      host: "localhost"
+      port: "9083"
+      path:  
+        routes: "/travelontip/routes"
+        schedules: "/travelontip/schedules"
+    fastgo:
+      host: "localhost"
+      port: "9084"
+      path:  
+        routes: "/fastgo/routes"
+        schedules: "/fastgo/schedules"
+
+sql:
+  host: "sql12.freesqldatabase.com"
+  port: "3306"
+  user: "sql12597378"
+  pass: "dyMNcGRjBu"
+  db: "sql12597378"

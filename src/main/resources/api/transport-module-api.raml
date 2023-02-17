@@ -1,0 +1,75 @@
+#%RAML 1.0
+title: RetrieveConsolidatedRoutesAndSchedules BAPI
+description: retreive routes and schedules
+
+uses:
+  common: /libraries/common/common-library.raml
+
+types:
+  getRoutes: !include /libraries/route/datatypes/getRoutes_dataType.raml
+  getSchedules: !include /libraries/schedules/datatypes/getSchedules_dataType.raml
+  commonError: !include /libraries/common/datatypes/common_error_dataType.raml
+
+/booking:
+  /{transportType}:
+    /routes:
+       get:
+        is:
+           - common.transactionId_header
+           - common.common_qparams
+        responses:
+          200:
+            body:
+              application/json:
+                type: getRoutes
+                example: !include /libraries/route/examples/RouteOutputExample.raml
+          400:
+            body:
+              application/json:
+                type: commonError
+                example: !include /libraries/common/responses/400response.json
+          404:
+            body:
+              application/json:
+                type: commonError
+                example: !include /libraries/common/responses/404response.json
+          500:
+            body:
+              application/json:
+                type: commonError
+                example: !include /libraries/common/responses/500response.json
+
+    /schedules:
+      get:
+        is:
+          - common.transactionId_header
+          - common.common_qparams
+          - common.requestTimeZone      
+        responses:
+          200:
+            body:
+              application/json:
+                type: getSchedules
+                example: !include /libraries/schedules/examples/SchedulesOutputExample.raml
+          400:
+            body:
+              application/json:
+                type:
+                  example:
+          404:
+            body:
+              application/json:
+                type:
+                  example:
+          500:
+            body:
+              application/json:
+                type:
+                  example:
+
+
+
+
+    
+
+

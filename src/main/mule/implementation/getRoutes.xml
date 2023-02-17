@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<sub-flow name="getRoutesSub_Flow" doc:id="217e54e8-e29b-43b6-9e10-b74f07ea7013" >
+		<logger level="INFO" doc:name="entry log" doc:id="8160ce4b-25f7-4b32-b9dc-7ae5a6c781c2" message="Request Received for Routes BAPI with TransactionID : #[vars.transactionId]" />
+		<flow-ref doc:name="set variables" doc:id="d294ae58-c96e-405f-911e-3bab46881f09" name="setVars" />
+		<set-variable value="Routes" doc:name="set resource for caching" doc:id="b5054d86-1ca3-4b90-b7e0-0dd6f2516472" variableName="resource" />
+		<choice doc:name="Choice" doc:id="5c96bf4e-22d3-47fb-8041-9d2d021be69c" >
+			<when expression='#[upper(vars.companyName) == "FASTGO"]'>
+				<flow-ref doc:name="get fast go" doc:id="88a56df3-3108-4cf6-9369-0f319bc201dc" name="fastgo_routes"/>
+			</when>
+			<when expression='#[upper(vars.companyName) == "TRAVELONTIP"]'>
+				<flow-ref doc:name="get travel on tip" doc:id="0922aa92-ea0f-426e-84d9-ab18ea18f08e" name="travelontip_routes"/>
+			</when>
+			<when expression='#[upper(vars.companyName) == "ALL"]'>
+				<flow-ref doc:name="get all" doc:id="0030e926-41de-43a0-9c75-063cc434f5b9" name="getallroutes" />
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="eadd6b4a-8ec8-4b9b-a14d-f4791c92222f">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var message = "Invalid company_name. Only accepts: [FastGo],[TravelOnTip], or [All]"
+---
+message]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="284ee9a2-fd98-4145-855d-994634d92cb9" />
+	</sub-flow>
+	<sub-flow name="fastgo_routes" doc:id="69fb976d-420c-4f38-8f90-bb16a5b7b7b6" >
+		<set-variable value="#[&quot;/api/&quot;++ (vars.transportType default &quot;all&quot;)++ p('http.requester.fastgo.path.routes')]" doc:name="path" doc:id="65a48d52-d11d-4f7a-b9cc-c27170c2c786" variableName="path" />
+		<ee:cache doc:name="Cache" doc:id="5529ee86-292f-4b67-b41b-ce30783f17c9" cachingStrategy-ref="Caching_Strategy">
+			<http:request method="GET" doc:name="get/fastgo" doc:id="7cf36cba-f8c3-4f1f-9e9c-d5dddb786cd0" config-ref="HTTP_Request_configuration_fastgo" path="#[vars.path]" sendCorrelationId="NEVER">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	transactionId : vars.transactionId
+}]]]></http:headers>
+				<http:query-params ><![CDATA[#[output application/java
+---
+{
+	destinationLocationCode : vars.destination,
+	departureLocationCode : vars.departure
+}]]]></http:query-params>
+		</http:request>
+			<ee:transform doc:name="Transform Message" doc:id="ff70312a-9412-43f9-846a-6416ccb2cb7b">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+fun getLoc(loc : String) = do {
+    if (loc == "BEN-SG" or loc == "BE-SG")
+        "Beuna Vista Singapore"
+    else if (loc == "KLG-MY")
+        "Kaling Malaysia"
+    else if (loc == "MNL")
+        "Manila, Philippines"
+    else if (loc == "MKT")
+        "Makati, Philippines"
+    else if (loc == "QC")
+        "Quezon City, Philippines"        
+    else if (loc == "PSG")
+        "Pasig, Philippines"
+    else if (loc == "BL-SG")
+    	"Bangalore Singapore"         
+    else
+        "No description Available"
+}
+---
+payload map ((value, index) -> {
+    companyCode: "FastGo",
+    originLocation: {
+        locationCode: value.departureLocationCode,
+        locationDesc: getLoc(value.departureLocationCode)
+    },
+    destinationLocation: {
+        locationCode: value.arrivalLocationCode,
+        locationDesc: getLoc(value.arrivalLocationCode)
+    }
+})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		</ee:cache>
+		<flow-ref doc:name="filter" doc:id="fd2dff6d-de09-4ef3-9a08-a1557b2d1e86" name="filterRoutesByLocation"/>
+	</sub-flow>
+	<sub-flow name="travelontip_routes" doc:id="b254d587-ac52-442b-a03c-3c66d2b519f6" >
+		<set-variable value="#[&quot;/api/&quot;++ (vars.transportType default &quot;all&quot;)++ p('http.requester.travelontip.path.routes')]" doc:name="path" doc:id="a48fb5cf-8494-4e22-bcdd-eb8c31c44e2f" variableName="path" />
+		<ee:cache doc:name="Cache" doc:id="272de3cd-888c-4107-b9dd-fb9b6471794b" cachingStrategy-ref="Caching_Strategy">
+			<http:request method="GET" doc:name="get/travelontip" doc:id="f671f127-b1fd-4f55-bb5e-928ee1ad727c" config-ref="HTTP_Request_configuration_travelontip" path="#[vars.path]">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	transactionId : vars.transactionId
+}]]]></http:headers>
+				<http:query-params ><![CDATA[#[output application/java
+---
+{
+	destinationLocationCode : vars.destination,
+	departureLocationCode : vars.departure
+}]]]></http:query-params>
+		</http:request>
+			<ee:transform doc:name="Transform Message" doc:id="073bd127-ab86-4538-9fc6-883b92fcf35e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+fun getLoc(loc : String) = do {
+    if (loc == "BEN-SG" or loc == "BE-SG")
+        "Beuna Vista Singapore"
+    else if (loc == "KLG-MY")
+        "Kaling Malaysia"
+    else if (loc == "MNL")
+        "Manila, Philippines"
+    else if (loc == "MKT")
+        "Makati, Philippines"
+    else if (loc == "QC")
+        "Quezon City, Philippines"        
+    else if (loc == "PSG")
+        "Pasig, Philippines"
+    else if (loc == "BL-SG")
+    	"Bangalore Singapore"         
+    else
+        "No description Available"
+}
+---
+payload map ((value, index) -> {
+    companyCode: "TravelOnTip",
+    originLocation: {
+    	locationCode: (value..originLocation.locationCode)reduce($$++$),
+        locationDesc: getLoc((value..originLocation.locationCode)reduce($$++$))
+    },
+    destinationLocation: {
+    	locationCode: (value..destinationLocation.locationCode)reduce($$++$),
+        locationDesc: getLoc((value..destinationLocation.locationCode)reduce($$++$))
+    }
+})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		</ee:cache>
+		<flow-ref doc:name="filter" doc:id="95b0ef2e-450b-4e8d-8e90-06e66697df83" name="filterRoutesByLocation"/>
+	</sub-flow>
+	<sub-flow name="getallroutes" doc:id="eae65dfd-9b99-49ba-a6f9-46c63ca7bc08" >
+		<scatter-gather doc:name="Scatter-Gather" doc:id="a24c53f4-d9c5-45e5-a5d7-72e87186f1ff" >
+			<route >
+				<flow-ref doc:name="get fastgo" doc:id="ab559178-f760-45d4-a21e-87786e39953d" name="fastgo_routes"/>
+			</route>
+			<route >
+				<flow-ref doc:name="get travelontip" doc:id="d806a1b7-3f42-4cb1-a2ee-729afa80c676" name="travelontip_routes"/>
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="62392678-306b-41de-b795-aee201f270ef">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+flatten(payload..payload)]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+	</sub-flow>
+	<sub-flow name="filterRoutesByLocation" doc:id="1f59d6d7-218c-4523-9bfa-f7f942b61719" >
+		<choice doc:name="Choice" doc:id="b71ba9bb-afa1-47b3-8e24-006552e1a4a6" >
+			<when expression='#[!(isEmpty(vars.destination)) and !(isEmpty(vars.departure))]'>
+				<ee:transform doc:name="Transform Message" doc:id="fdd3974e-7421-43ee-a45d-6faa8fa427e3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var dest = upper(vars.destination)
+var depart = upper(vars.departure)
+var filterbyDeparture = payload filter((item,index)->upper(item.originLocation.locationCode) == depart)
+var final= filterbyDeparture filter((item,index)->upper(item.destinationLocation.locationCode)==dest)
+---
+final]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression='#[!(isEmpty(vars.departure)) and isEmpty(vars.destination)]'>
+				<ee:transform doc:name="Transform Message" doc:id="49f57f1d-70ff-4feb-8e93-cdb00add95e7" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var depart = upper(vars.departure)
+var filterbyDeparture = payload filter((item,index)->upper(item.originLocation.locationCode) == depart)
+
+---
+filterbyDeparture]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression='#[!(isEmpty(vars.destination)) and isEmpty(vars.departure)]'>
+				<ee:transform doc:name="Transform Message" doc:id="050b4560-92a6-43b7-816f-4bb36c313660" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var dest = upper(vars.destination)
+var filterbyDestination = payload filter((item,index)->upper(item.destinationLocation.locationCode) == dest)
+
+---
+filterbyDestination]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="72ef1a67-10da-4387-ae22-a091dfd1d131" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<configuration-properties doc:name="Configuration properties" doc:id="804379c4-a056-4496-a264-6eaa241285b1" file="config/${MULE_ENV}.yaml" />
+    <http:listener-config name="transport-module-api-httpListenerConfig">
+        <http:listener-connection host="${http.listener.host}" port="${http.listener.port}" />
+    </http:listener-config>
+    <apikit:config name="transport-module-api-config" api="transport-module-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+
+    <http:request-config name="HTTP_Request_configuration_travelontip" doc:name="HTTP Request configuration" doc:id="3eeac00c-c934-4989-bd2a-ef93b7c331bb">
+		<http:request-connection host="${http.requester.travelontip.host}" port="${http.requester.travelontip.port}"/>
+	</http:request-config>
+	<configuration doc:name="Configuration" doc:id="a9eca79f-50bc-4d18-b750-63084accad40" defaultErrorHandler-ref="global_error_handlerError_Handler" />
+	<http:request-config name="HTTP_Request_configuration_fastgo" doc:name="HTTP Request configuration" doc:id="3028947c-718b-414e-a453-39d57606d761">
+		<http:request-connection host="${http.requester.fastgo.host}" port="${http.requester.fastgo.port}" />
+	</http:request-config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="c105ab72-3151-4967-96ce-40aa0403594a" maxEntries="1000" entryTtl="15" entryTtlUnit="MINUTES" expirationInterval="10" />
+	<ee:object-store-caching-strategy name="Caching_Strategy" doc:name="Caching Strategy" doc:id="45e754cf-972e-4a60-9331-1732ce571842" keyGenerationExpression='#[vars.companyName ++ vars.transportType ++ vars.resource ++ "departure: "  ++ vars.departure ++ "destination: " ++ vars.destination]' objectStore="Object_store"/>
+	<sub-flow name="setVars" doc:id="976afbc4-2b34-4029-83ee-4012e570a0de" >
+		<set-variable value="#[attributes.uriParams.transportType as String]" doc:name="transportType" doc:id="5a5d8060-95f3-4419-ac8f-fa1e569ca8d0" variableName="transportType" />
+		<set-variable value="#[attributes.headers.transactionID]" doc:name="transactionId" doc:id="67e5b474-854c-49b1-aeac-4365477139dd" variableName="transactionId" />
+		<set-variable value='#[attributes.queryParams.destination_loc]' doc:name="destinationLoc" doc:id="15d3d8b9-4c8c-4f18-b35a-f0868616648a" variableName="destination" />
+		<set-variable value='#[attributes.queryParams.departure_loc]' doc:name="departure Loc" doc:id="e8515770-5349-4563-ba47-b8b24b6d7581" variableName="departure" />
+		<set-variable value="#[attributes.queryParams.company_name]" doc:name="companyName" doc:id="45e754cf-972e-4a60-9331-1732ce571842" variableName="companyName" />
+		<logger level="INFO" doc:name="Logger" doc:id="c69702ca-8d53-41e5-9142-e820f8b975ea" message="variables stored"/>
+	
+</sub-flow>
+	
+    
+</mule>

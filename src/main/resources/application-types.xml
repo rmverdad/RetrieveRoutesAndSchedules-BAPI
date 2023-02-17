@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="routes_bapi_example" format="json">
+      <types:shape format="weave" example="examples/routes_bapi_example.json"><![CDATA[%dw 2.0
+
+type routes_bapi_example = Array<{|  companyCode: String,   originLocation: {|    locationCode: String,     locationDesc: String  |},   destinationLocation: {|    locationCode: String,     locationDesc: String  |}|}> {"example": "[{\\\"companyCode\\\":\\\"TransNational\\\",\\\"originLocation\\\":{\\\"locationCode\\\":\\\"BEN-SG\\\",\\\"locationDesc\\\":\\\"Buena Vista Singapore\\\"},\\\"destinationLocation\\\":{\\\"locationCode\\\":\\\"KLG-MY\\\",\\\"locationDesc\\\":\\\"Klang Malaysia\\\"}},{\\\"companyCode\\\":\\\"TransNational\\\",\\\"originLocation\\\":{\\\"locationCode\\\":\\\"BEN-SG\\\",\\\"locationDesc\\\":\\\"Buena Vista Singapore\\\"},\\\"destinationLocation\\\":{\\\"locationCode\\\":\\\"KLG-MY\\\",\\\"locationDesc\\\":\\\"Klang Malaysia\\\"}}]"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="db-resources" format="json">
+      <types:shape format="weave" example="examples/New document 1.json"><![CDATA[%dw 2.0
+
+type db_resources = Array<{|  companyName: String,   originLocationCode: String,   destinationLocationCode: String|}> {"example": "[{\\\"companyName\\\":\\\"TravelOnTip\\\",\\\"originLocationCode\\\":\\\"BEN-SG\\\",\\\"destinationLocationCode\\\":\\\"KLG-MY\\\"},{\\\"companyName\\\":\\\"TravelOnTip\\\",\\\"originLocationCode\\\":\\\"BEN-SG\\\",\\\"destinationLocationCode\\\":\\\"KLG-MY\\\"}]"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="travelontipexamples" format="json">
+      <types:shape format="weave" example="examples/example-1.json"><![CDATA[%dw 2.0
+
+type travelontipexamples = Array<{|  availableSeats: Number {"typeId": "int"},   departureDateTime: String,   travelRoute: {|    destinationLocation: {| locationCode: String |},     originLocation: {| locationCode: String |}  |}|}> {"example": "[{\\\"availableSeats\\\":50,\\\"departureDateTime\\\":\\\"2023-02-14T14:17:40\\\",\\\"travelRoute\\\":{\\\"destinationLocation\\\":{\\\"locationCode\\\":\\\"KLG-MY\\\"},\\\"originLocation\\\":{\\\"locationCode\\\":\\\"BEN-SG\\\"}}},{\\\"availableSeats\\\":50,\\\"departureDateTime\\\":\\\"2023-02-14T06:41:39\\\",\\\"travelRoute\\\":{\\\"destinationLocation\\\":{\\\"locationCode\\\":\\\"BL-SG\\\"},\\\"originLocation\\\":{\\\"locationCode\\\":\\\"KLG-MY\\\"}}}]"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#ff70312a-9412-43f9-846a-6416ccb2cb7b">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="db-resources"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="routes_bapi_example"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#93da1e0e-02d1-4f5b-b76a-22f15a061354">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="travelontipexamples[]"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="travelontipexamples"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>
